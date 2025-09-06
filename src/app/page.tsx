@@ -1,8 +1,9 @@
 "use client";
 import Image from "next/image";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { useState } from "react";
+import { LuMapPin } from "react-icons/lu";
+import { GooglePlacesAutocomplete } from "~/lib/google-places-autocomplete";
 
 export default function Home() {
   const [address, setAddress] = useState("");
@@ -23,17 +24,27 @@ export default function Home() {
               Your Building Address
             </label>
             <div className="flex w-full items-center gap-3">
-              <Input
-                id="address"
-                placeholder="Enter address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
+              <div className="relative w-full">
+                <LuMapPin
+                  className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/70"
+                  aria-hidden="true"
+                />
+                <GooglePlacesAutocomplete
+                  id="address"
+                  value={address}
+                  onChange={setAddress}
+                  countries={["ca"]}
+                  types={["address"]}
+                  className="w-full pl-10"
+                />
+              </div>
               <Button className="shrink-0">Check for STRs</Button>
             </div>
           </div>
         </div>
         <div className="mt-8 flex items-center gap-3 opacity-90">
+          <span className="text-sm">Built for the <strong>Ottawa Hackathon 3.0</strong></span>
+          |
           <span className="text-sm">Powered by the <strong>Solace Agent Mesh</strong></span>
           <Image src="/solace-logo.png" alt="Solace logo" width={44} height={44} />
         </div>
