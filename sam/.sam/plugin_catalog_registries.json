@@ -2,7 +2,7 @@
   {
     "id": "2387b1eab6fcde99f17058c59716f5f9",
     "path_or_url": "https://github.com/solacecommunity/solace-agent-mesh-plugins",
-    "name": "Solace Community",
+    "name": "Solace",
     "type": "git",
     "is_default": false,
     "is_official_source": false,
