@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { Input } from "~/components/ui/input";
 import { usePlacesAutocomplete } from "./usePlacesAutocomplete";
@@ -33,6 +33,12 @@ export const GooglePlacesAutocomplete = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // If the Google Maps script is already present (e.g., navigating back), mark as loaded
+  useEffect(() => {
+    const w = window as unknown as { google?: any };
+    if (w.google?.maps?.places) setIsLoaded(true);
+  }, []);
+
   usePlacesAutocomplete(inputRef, isLoaded, {
     types,
     countries,
@@ -50,7 +56,8 @@ export const GooglePlacesAutocomplete = ({
         id="google-maps"
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`}
         strategy="afterInteractive"
-        onLoad={() => setIsLoaded(true)}
+        // onReady fires even if the script was already loaded earlier
+        onReady={() => setIsLoaded(true)}
       />
       <Input
         id={id}

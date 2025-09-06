@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect } from "react";
+import { RefObject, useEffect, useRef } from "react";
 
 export type UsePlacesAutocompleteOptions = {
   types?: readonly string[];
@@ -17,41 +17,65 @@ export const usePlacesAutocomplete = (
   isLoaded: boolean,
   opts: UsePlacesAutocompleteOptions = {},
 ) => {
+  // Keep latest onPlace callback without forcing re-subscription of the Google listener
+  const onPlaceRef = useRef<UsePlacesAutocompleteOptions["onPlace"]>(opts.onPlace);
+  useEffect(() => {
+    onPlaceRef.current = opts.onPlace;
+  }, [opts.onPlace]);
+
+  // Track the current Autocomplete instance and the element it is bound to
+  const autocompleteRef = useRef<any | null>(null);
+  const boundElementRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     const w = window as unknown as { google?: any };
-    if (!isLoaded || !inputRef.current || !w.google?.maps?.places) return;
+    const el = inputRef.current;
+    if (!isLoaded || !el || !w.google?.maps?.places) return;
 
-    const google = w.google as any;
-    const options = {
-      types: opts.types ?? ["address"],
-      componentRestrictions: opts.countries
-        ? { country: [...opts.countries] }
-        : undefined,
-      fields:
-        opts.fields ?? (['formatted_address', 'address_components', 'geometry', 'place_id'] as const),
-    } as const;
-
-    const autocomplete = new google.maps.places.Autocomplete(
-      inputRef.current,
-      options,
-    );
-
-    const listener = autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace?.();
-      opts.onPlace?.(place);
-    });
-
-    return () => {
+    // If the element changed since last bind, clear old listeners/instance
+    if (autocompleteRef.current && boundElementRef.current !== el) {
       try {
-        if (listener?.remove) listener.remove();
-        else if (google?.maps?.event?.clearInstanceListeners)
-          google.maps.event.clearInstanceListeners(autocomplete);
+        if (w.google?.maps?.event?.clearInstanceListeners)
+          w.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       } catch {
         // no-op
       }
+      autocompleteRef.current = null;
+    }
+
+    // Initialize if not already bound
+    if (!autocompleteRef.current) {
+      const google = w.google as any;
+      const options = {
+        types: opts.types ?? ["address"],
+        componentRestrictions: opts.countries ? { country: [...opts.countries] } : undefined,
+        fields: opts.fields ?? ["formatted_address", "address_components", "geometry", "place_id"],
+      } as const;
+
+      const instance = new google.maps.places.Autocomplete(el, options);
+      instance.addListener("place_changed", () => {
+        const place = instance.getPlace?.();
+        onPlaceRef.current?.(place);
+      });
+
+      autocompleteRef.current = instance;
+      boundElementRef.current = el;
+    }
+
+    // Cleanup when this specific element unmounts/changes
+    return () => {
+      // Only clean up if we're still bound to the same element
+      if (boundElementRef.current !== el) return;
+      try {
+        if (w.google?.maps?.event?.clearInstanceListeners)
+          w.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      } catch {
+        // no-op
+      }
+      autocompleteRef.current = null;
+      boundElementRef.current = null;
     };
-    // We only want to re-init when the script loads or the input ref changes; options changes are rare
-    // and should be handled by remounting the component using the hook if needed.
+    // We want to re-init when the script loads or the actual input element node changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, inputRef]);
+  }, [isLoaded, inputRef.current]);
 };

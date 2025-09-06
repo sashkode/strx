@@ -14,6 +14,7 @@ import {
   LuCheck,
   LuLoader,
 } from "react-icons/lu";
+import Footer from "~/components/Footer";
 
 type Step = {
   id: number;
@@ -113,7 +114,7 @@ export default function ProcessingPage() {
   const allDone = completed.every(Boolean);
 
   return (
-    <div className="min-h-dvh bg-[--background] text-[--foreground]">
+    <div className="relative min-h-dvh bg-[--background] text-[--foreground]">
       <main className="mx-auto flex min-h-dvh max-w-3xl flex-col items-center justify-center p-6">
   <div className="vt-panel w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]">
           <div className="mb-6 flex items-center justify-between">
@@ -185,6 +186,7 @@ export default function ProcessingPage() {
           )}
         </div>
       </main>
+      <Footer mode="absolute" />
 
       {/* Local CSS: view transitions, step grow + delayed fade, and text shine */}
       <style jsx>{`

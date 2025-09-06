@@ -5,6 +5,7 @@ import { LuMapPin } from "react-icons/lu";
 import { Button } from "~/components/ui/button";
 import { GooglePlacesAutocomplete } from "~/lib/google-places-autocomplete";
 import { useViewTransitionRouter } from "~/lib/hooks/useViewTransitionRouter";
+import Footer from "~/components/Footer";
 
 const generateGuid = () =>
   typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
@@ -65,22 +66,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="mt-8 flex items-center gap-3 opacity-90 flex-col sm:flex-row">
-          <span className="text-sm">
-            Built for the <strong>Ottawa Hackathon 3.0</strong>
-          </span>
-          <span className="hidden sm:block">|</span>
-          <span className="text-sm">
-            Powered by the <strong>Solace Agent Mesh</strong>
-          </span>
-          <Image
-            src="/solace-logo.png"
-            alt="Solace logo"
-            width={256}
-            height={256}
-            className="mt-6 sm:mt-0 size-[96px] sm:size-[44px]"
-          />
-        </div>
+        <Footer mode="inline" />
       </main>
       <style jsx>{`
         .vt-panel { view-transition-name: processing-panel; }
