@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useLayoutEffect, type ReactNode, unstable_ViewTransition as ViewTransition } from "react";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import { useViewTransitionRouter } from "~/lib/hooks/useViewTransitionRouter";
@@ -31,6 +31,11 @@ export default function ProcessingPage() {
   const [current, setCurrent] = useState(-1);
   const [completed, setCompleted] = useState<boolean[]>(Array(7).fill(false));
   const timers = useRef<number[]>([]);
+
+  // Add panel ref and height state for smooth height transitions
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const prevHeightRef = useRef<number | null>(null);
+  const [panelHeight, setPanelHeight] = useState<string | undefined>(undefined);
 
   const steps: Step[] = useMemo(
     () => [
@@ -91,6 +96,12 @@ export default function ProcessingPage() {
   useEffect(() => {
     // Run steps in sequence, each 3-5s
     const run = async () => {
+      // Small initial delay before the first item shows up
+      await new Promise<void>((resolve) => {
+        const t = window.setTimeout(resolve, 500);
+        timers.current.push(t);
+      });
+
       for (let i = 0; i < steps.length; i++) {
         setCurrent(i);
         await new Promise<void>((resolve) => {
@@ -111,12 +122,42 @@ export default function ProcessingPage() {
     };
   }, [steps]);
 
+  // compute completion before effects that use it
   const allDone = completed.every(Boolean);
+
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const prev = prevHeightRef.current ?? el.getBoundingClientRect().height;
+    const next = el.scrollHeight;
+    if (prev === next) {
+      prevHeightRef.current = next;
+      return;
+    }
+    // Start from previous height, then set to next to trigger transition
+    setPanelHeight(`${prev}px`);
+    // force reflow
+    el.getBoundingClientRect();
+    requestAnimationFrame(() => setPanelHeight(`${next}px`));
+    const onTransitionEnd = (e: TransitionEvent) => { if (e.propertyName === "height") setPanelHeight(undefined); };
+    el.addEventListener("transitionend", onTransitionEnd);
+    prevHeightRef.current = next;
+    return () => el.removeEventListener("transitionend", onTransitionEnd);
+  }, [current, allDone]);
 
   return (
     <div className="relative min-h-dvh bg-[--background] text-[--foreground]">
       <main className="mx-auto flex min-h-dvh max-w-3xl flex-col items-center justify-center p-6">
-  <div className="vt-panel w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]">
+        <ViewTransition />
+        <div
+          ref={panelRef}
+          style={{
+            viewTransitionName: "processing-panel",
+            height: panelHeight,
+            transition: "height 420ms linear"
+          }}
+          className="w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 pb-14 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+        >
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-lg font-bold opacity-90">Processing building risk</h1>
             {allDone ? (
@@ -173,7 +214,7 @@ export default function ProcessingPage() {
             })}
           </ul>
           {!allDone ? (
-            <p className="mt-6 text-center text-xs opacity-60">This may take a minute. You can keep this tab open.</p>
+            <p className="absolute bottom-4 left-0 w-full mt-6 text-center text-xs opacity-60">This may take a minute. You can keep this tab open.</p>
           ) : (
             <div className="mt-6 flex items-center justify-center gap-3">
               <Button onClick={() => push("/")}>Back home</Button>
@@ -190,19 +231,9 @@ export default function ProcessingPage() {
 
       {/* Local CSS: view transitions, step grow + delayed fade, and text shine */}
       <style jsx>{`
-        .vt-panel { view-transition-name: processing-panel; }
-
-        /* Smooth cross-route panel morph */
-        :global(:root::view-transition-old(processing-panel)),
-        :global(:root::view-transition-new(processing-panel)) {
-          animation-duration: 820ms;
-          animation-timing-function: cubic-bezier(.2,.9,.2,1);
-          transform-origin: top center;
-        }
-
-  /* Step appears: grow first, then fade-in + lift content */
-  .step-item { overflow: hidden; max-height: 160px; opacity: 1; transform: translateY(0); transition: max-height 560ms ease, opacity 380ms ease 260ms, transform 420ms ease 260ms; }
-  @starting-style { .step-item { max-height: 0; opacity: 0; transform: translateY(10px); } }
+        /* Step appears: grow first, then fade-in + lift content */
+        .step-item { overflow: hidden; opacity: 1; transform: translateY(0); transition: opacity 380ms ease 260ms, transform 420ms ease 260ms; }
+        @starting-style { .step-item { opacity: 0; transform: translateY(20px); } }
 
         /* Reliable text shine using animated background-position */
         .shine {
