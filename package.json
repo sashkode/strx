@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "sam": "cd ./sam/ && python3 -m venv .venv && source .venv/bin/activate && sam run",
+    "sam:catalog": "cd ./sam/ && python3 -m venv .venv && source .venv/bin/activate && sam plugin catalog",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
