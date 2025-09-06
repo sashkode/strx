@@ -4,20 +4,31 @@ import { useState } from "react";
 import { LuMapPin } from "react-icons/lu";
 import { Button } from "~/components/ui/button";
 import { GooglePlacesAutocomplete } from "~/lib/google-places-autocomplete";
+import { useViewTransitionRouter } from "~/lib/hooks/useViewTransitionRouter";
+
+const generateGuid = () =>
+  typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+    ? (crypto as any).randomUUID()
+    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
 
 export default function Home() {
   const [address, setAddress] = useState("");
+  const { push } = useViewTransitionRouter();
   return (
     <div className="min-h-dvh bg-[--background] text-[--foreground]">
-      <main className="mx-auto flex min-h-dvh max-w-4xl flex-col items-center justify-center gap-10 p-6">
-        <div className="flex flex-col items-center gap-8 w-full">
+      <main className="mx-auto flex min-h-dvh max-w-3xl flex-col items-center justify-center gap-10 p-6">
+        <div className="flex w-full flex-col items-center gap-8">
           <Image
             src="/logo.png"
             width={540}
             height={540}
             alt="STRX"
             priority
-            className="select-none -my-20 sm:-my-40"
+            className="-my-20 select-none sm:-my-40"
           />
           <div className="w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1)] shadow-lg">
             <label
@@ -41,7 +52,16 @@ export default function Home() {
                   className="w-full pl-10"
                 />
               </div>
-              <Button className="shrink-0">Check for STRs</Button>
+              <Button
+                className="shrink-0"
+                onClick={() => {
+                  const taskId = generateGuid();
+                  const to = `/processing?taskId=${taskId}`;
+                  push(to);
+                }}
+              >
+                Check for STRs
+              </Button>
             </div>
           </div>
         </div>
@@ -62,6 +82,11 @@ export default function Home() {
           />
         </div>
       </main>
+      <style jsx>{`
+        .vt-panel {
+          view-transition-name: processing-panel;
+        }
+      `}</style>
     </div>
   );
 }
