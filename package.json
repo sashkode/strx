@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "sam": "cd ./sam/ && python3 -m venv .venv && source .venv/bin/activate && sam run",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",

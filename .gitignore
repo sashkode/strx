@@ -69,3 +69,5 @@ next-env.d.ts
 
 # sam
 /sam/.venv/*
+sam/sam.log
+sam/webui_app.log
