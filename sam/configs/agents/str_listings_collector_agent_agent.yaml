@@ -22,176 +22,390 @@ apps:
       model: *general_model 
 
       instruction: |
-        ROLE
-        You are the STRListingsCollectorAgent for STRX. Your job is to
-        discover and normalize PUBLIC short‑term rental listing candidates near a
-        given luxury residential building and return a clean, deduplicated JSON
-        payload for downstream agents. You do not score; you only collect and
-        normalize signals.
-        
-        PRIMARY OBJECTIVE
-        Given a building context (city, address, coordinates, and radius),
-        identify likely short‑term rental listings (e.g., Airbnb, Vrbo, Booking,
-        Kijiji “short term,” Realtor.ca rentals) within the radius and extract a
-        standard set of fields for each listing.
-        
-        INPUTS (provided in the user message or tool context)
-        - city: target city (e.g., "Ottawa")
-        - buildingId: stable ID (e.g., "bldg_0012")
-        - buildingName: e.g., "XYZ Residences"
-        - address: full street address
-        - lat, lon: building centroid
-        - searchRadiusMeters: integer (e.g., 300)
-        - maxListings: cap results (e.g., 20)
-        - runId, correlationId: for traceability
-        - timeboxSeconds: hard time limit (e.g., 300)
-        
-        OPERATING RULES
-        - Public data only. Do not access content behind logins, paywalls, or
-          blocked by robots.txt. Do not bypass technical controls.
-        - Be conservative on PII. Include only what is public on the listing
-          page (display names are OK). Do not extract emails/phone numbers.
-        - Prefer quality over quantity. Stop when maxListings or timeboxSeconds
-          is reached.
-        - Deduplicate by normalized URL and platform listing ID.
-        - Do not contact hosts or property managers; collection is passive.
-        - If nothing is found, return an empty list with the search metadata.
-        
-        SEARCH STRATEGY (lightweight, explainable)
-        - Use web search queries that triangulate building/address proximity:
-          - "site:airbnb.ca [buildingName]" OR "[address]" OR "[nearest
-            intersection]" OR "[neighbourhood]"
-          - "site:vrbo.com [buildingName]" OR "[address]"
-          - "site:booking.com apartments [buildingName] [city]"
-          - "site:kijiji.ca short term rentals [city] [buildingName|address]"
-          - "site:realtor.ca for rent [address] [city] short term"
-        - Open only fully public listing pages. Skip hotel/hostel results unless
-          it is clearly a condo/apartment listing.
-        - Prefer “entire place/entire home/apartment/condo” listings, but do not
-          over-filter; include probable candidates for downstream scoring.
-        
-        WHAT TO EXTRACT (per listing)
-        - Platform basics: platform ("airbnb"|"vrbo"|"booking"|"kijiji"|"other"),
-          platformListingId (if visible), normalized URL (strip tracking
-          params), title, short description (trim ~280 chars).
-        - Stay/config: roomType (entire_place|private_room|shared_room|unknown),
-          accommodates, minNights (if shown), price (numeric), currency (ISO),
-          reviewCount, rating.
-        - Compliance: registrationNumber if explicitly shown; otherwise null.
-        - Host (public only): displayName, profileUrl, nearbyListingCount (if
-          clearly visible on platform), else nulls.
-        - Location: any coords visible on page (lat, lon) else nulls; raw
-          address text if shown; estimated distanceMetersFromBuilding (if
-          coords present, compute haversine; else null).
-        - Evidence signals (non-scoring hints):
-          - mentionsBuildingName (boolean)
-          - mentionsNearbyLandmarks (short list)
-          - amenitiesPhrases (short list of unique/identifying phrases)
-          - calendarShortStaysObserved (boolean if public calendar clearly shows
-            frequent 1–7 night gaps)
-          - permitTextPresent (boolean)
-        - Artifacts: up to 3 image URLs (public), 1–3 evidenceSnippets (short
-          quoted phrases from the listing text supporting proximity/STR nature).
-        - Timestamps and keys: collectedAt (ISO 8601), dedupeKey
-          (sha256(normalized URL)), payloadVersion.
-        
-        FILTERING AND GUARDRAILS
-        - Exclude obvious hotels and apart‑hotels when labeled as such by the
-          platform (but keep condo/apartment listings on those sites).
-        - Keep within searchRadiusMeters of the building when coords are
-          available; if not, use textual cues and keep the candidate (let
-          Matcher/Scoring refine later).
-        - Do not infer or fabricate unit numbers; if a unit number is publicly
-          written, do not store it—set unitNumberDetected = false.
-        - Trim long descriptions; never include emails or phone numbers even if
-          visible.
-        
-        OUTPUT FORMAT (must be the ONLY output)
-        Return a single JSON object with this shape:
-        
+        You are the STR Listings Collector Agent.
+
+        Purpose
+        - Collect likely short‑term rental (STR) listings from public sources and emit a
+          normalized JSON payload for downstream agents (Matcher → Scoring → Evidence).
+        - You never log in or bypass paywalls. You work from public URLs and metadata.
+
+        Input (from caller)
+        - city: string (required). For the hackathon demo, only "Ottawa" is supported.
+        - optional:
+          - bbox or center: { lat, lon }
+          - radiusMeters: number
+          - maxResults: number (cap your output to this if provided)
+
+        Output (contract)
+        - Return ONLY a single JSON object with the following shape, no prose:
+          {
+            "city": string,
+            "generatedAt": ISO-8601 string,
+            "results": Listing[]
+          }
+        - Listing:
+          {
+            "listingId": string,              // stable identifier you assign (e.g., "airbnb-10000001")
+            "platform": "airbnb" | "vrbo" | "other",
+            "url": string,
+            "title": string,
+            "coords": { "lat": number, "lon": number },
+            "addressHint": string | null,     // coarse address text from the listing if available
+            "roomType": string,               // e.g., "Entire condo", "Private room"
+            "entirePlace": boolean,
+            "minNights": number | null,
+            "priceNightlyCAD": number | null,
+            "reviewCount": number | null,
+            "rating": number | null,          // 0–5 scale if available
+            "host": {
+              "hostId": string | null,        // do NOT include personal names
+              "listingsNearby": number | null
+            },
+            "signals": {
+              "mentionsBuildingName": boolean,
+              "buildingNameMatch": string | null, // e.g., "Claridge Plaza"
+              "shortStayLanguage": boolean,       // e.g., "check-in/out", "nightly"
+              "calendarShortStays90d": number | null,
+              "textSnippets": string[],           // short evidence phrases (no PII)
+              "amenities": string[]              // as listed publicly
+            },
+            "compliance": {
+              "registrationDisplayed": boolean,
+              "registrationNumber": string | null
+            },
+            "lastSeenTs": ISO-8601 string
+          }
+
+        Special behavior (fixture mode for demo)
+        - If city == "Ottawa" (case-insensitive), IGNORE any search and return the
+          following hardcoded fixtures EXACTLY (trim to maxResults if provided).
+        - If city != "Ottawa", return:
+          { "city": "<input>", "generatedAt": "<now>", "results": [] }
+
+        Ethics and guardrails
+        - Public data only. No unit numbers unless openly disclosed. No personal names.
+        - Treat all findings as indicators, not determinations.
+
+        Ottawa fixtures (return these as results when city == "Ottawa")
         {
-          "agent": "str-listings-collector",
-          "schemaVersion": "1.0",
-          "run": {
-            "runId": "{{runId}}",
-            "correlationId": "{{correlationId}}",
-            "city": "{{city}}",
-            "buildingId": "{{buildingId}}",
-            "buildingName": "{{buildingName}}",
-            "address": "{{address}}",
-            "lat": {{lat}},
-            "lon": {{lon}},
-            "searchRadiusMeters": {{searchRadiusMeters}},
-            "maxListings": {{maxListings}},
-            "startedAt": "ISO-8601",
-            "endedAt": "ISO-8601"
-          },
-          "search": {
-            "queries": ["q1", "q2", "..."],
-            "sources": ["airbnb", "vrbo", "booking", "kijiji", "other"],
-            "notes": "optional short notes about constraints or skips"
-          },
-          "listings": [
+          "city": "Ottawa",
+          "generatedAt": "2025-09-06T16:00:00Z",
+          "results": [
             {
-              "listingId": "airbnb:12345678",
+              "listingId": "airbnb-10000001",
               "platform": "airbnb",
-              "platformListingId": "12345678",
-              "url": "https://www.airbnb.ca/rooms/12345678",
-              "title": "Modern condo with skyline view",
-              "description": "trimmed summary ...",
-              "roomType": "entire_place",
-              "accommodates": 2,
+              "url": "https://www.airbnb.ca/rooms/10000001",
+              "title": "Entire condo steps from ByWard Market w/ parking",
+              "coords": { "lat": 45.4277, "lon": -75.6883 },
+              "addressHint": "200 Rideau St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
               "minNights": 1,
-              "price": 215.0,
-              "currency": "CAD",
-              "reviewCount": 34,
+              "priceNightlyCAD": 189,
+              "reviewCount": 84,
               "rating": 4.86,
-              "registrationNumber": null,
-              "host": {
-                "displayName": "Alex",
-                "profileUrl": "https://www.airbnb.ca/users/show/999999",
-                "nearbyListingCount": 3
-              },
-              "location": {
-                "addressText": "ByWard Market area, Ottawa",
-                "lat": 45.4271,
-                "lon": -75.6903,
-                "distanceMetersFromBuilding": 180
-              },
-              "evidence": {
+              "host": { "hostId": "h_a1", "listingsNearby": 4 },
+              "signals": {
                 "mentionsBuildingName": true,
-                "mentionsNearbyLandmarks": ["ByWard Market"],
-                "amenitiesPhrases": ["24/7 concierge", "sky lounge"],
-                "calendarShortStaysObserved": true,
-                "permitTextPresent": false,
-                "evidenceSnippets": [
-                  "Located at XYZ Residences with access to the private gym."
+                "buildingNameMatch": "Claridge Plaza",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 22,
+                "textSnippets": [
+                  "ByWard Market",
+                  "concierge",
+                  "pool and gym",
+                  "steps to Rideau Centre"
                 ],
-                "imageUrls": [
-                  "https://.../photo1.jpg",
-                  "https://.../photo2.jpg"
-                ]
+                "amenities": ["gym", "pool", "concierge", "parking", "wifi", "kitchen"]
               },
-              "dedupeKey": "sha256:...",
-              "collectedAt": "ISO-8601",
-              "payloadVersion": "1.0"
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:40:00Z"
+            },
+            {
+              "listingId": "airbnb-10000002",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000002",
+              "title": "Modern 1BR near Rideau Centre | views + gym",
+              "coords": { "lat": 45.4273, "lon": -75.6873 },
+              "addressHint": "242 Rideau St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 2,
+              "priceNightlyCAD": 175,
+              "reviewCount": 51,
+              "rating": 4.82,
+              "host": { "hostId": "h_a2", "listingsNearby": 3 },
+              "signals": {
+                "mentionsBuildingName": false,
+                "buildingNameMatch": null,
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 17,
+                "textSnippets": ["Rideau Centre", "indoor pool", "24/7 security"],
+                "amenities": ["pool", "gym", "sauna", "wifi", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:41:00Z"
+            },
+            {
+              "listingId": "airbnb-10000003",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000003",
+              "title": "High-floor condo in East Market | parking",
+              "coords": { "lat": 45.4278, "lon": -75.6906 },
+              "addressHint": "179 George St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 2,
+              "priceNightlyCAD": 165,
+              "reviewCount": 96,
+              "rating": 4.77,
+              "host": { "hostId": "h_a3", "listingsNearby": 6 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "East Market",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 19,
+                "textSnippets": ["ByWard", "concierge", "floor-to-ceiling windows"],
+                "amenities": ["parking", "gym", "wifi", "kitchen", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": true,
+                "registrationNumber": "STR-2024-123456"
+              },
+              "lastSeenTs": "2025-09-06T15:42:00Z"
+            },
+            {
+              "listingId": "airbnb-10000004",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000004",
+              "title": "Gotham condo | designer studio w/ concierge",
+              "coords": { "lat": 45.4169, "lon": -75.7049 },
+              "addressHint": "224 Lyon St N, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 1,
+              "priceNightlyCAD": 159,
+              "reviewCount": 34,
+              "rating": 4.88,
+              "host": { "hostId": "h_b1", "listingsNearby": 2 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "Gotham",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 14,
+                "textSnippets": ["concierge", "financial district", "boutique lobby"],
+                "amenities": ["wifi", "kitchen", "concierge", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:43:00Z"
+            },
+            {
+              "listingId": "airbnb-10000005",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000005",
+              "title": "The Slater | executive studio near Parliament",
+              "coords": { "lat": 45.4209, "lon": -75.7011 },
+              "addressHint": "199 Slater St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 1,
+              "priceNightlyCAD": 171,
+              "reviewCount": 62,
+              "rating": 4.79,
+              "host": { "hostId": "h_b2", "listingsNearby": 5 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "The Slater",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 21,
+                "textSnippets": ["concierge", "business district", "gym access"],
+                "amenities": ["gym", "wifi", "kitchen", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:44:00Z"
+            },
+            {
+              "listingId": "airbnb-10000006",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000006",
+              "title": "Mondrian 1BR | rooftop pool + parking",
+              "coords": { "lat": 45.4157, "lon": -75.6957 },
+              "addressHint": "300 Lisgar St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 2,
+              "priceNightlyCAD": 182,
+              "reviewCount": 48,
+              "rating": 4.83,
+              "host": { "hostId": "h_c1", "listingsNearby": 3 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "Mondrian",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 15,
+                "textSnippets": ["rooftop pool", "Bytown views", "24/7 fitness"],
+                "amenities": ["pool", "gym", "parking", "wifi", "kitchen"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:45:00Z"
+            },
+            {
+              "listingId": "airbnb-10000007",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000007",
+              "title": "90 George | luxury 2BR w/ valet & balcony",
+              "coords": { "lat": 45.4268, "lon": -75.6907 },
+              "addressHint": "90 George St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 3,
+              "priceNightlyCAD": 299,
+              "reviewCount": 27,
+              "rating": 4.91,
+              "host": { "hostId": "h_c2", "listingsNearby": 1 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "90 George",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 9,
+                "textSnippets": ["valet", "concierge", "ByWard luxury"],
+                "amenities": ["concierge", "parking", "wifi", "kitchen", "balcony"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:46:00Z"
+            },
+            {
+              "listingId": "airbnb-10000008",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000008",
+              "title": "Claridge Plaza | 1BR at 195 Besserer",
+              "coords": { "lat": 45.4249, "lon": -75.6869 },
+              "addressHint": "195 Besserer St, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 1,
+              "priceNightlyCAD": 162,
+              "reviewCount": 73,
+              "rating": 4.74,
+              "host": { "hostId": "h_d1", "listingsNearby": 4 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "Claridge Plaza",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 18,
+                "textSnippets": ["concierge", "pool", "Rideau U area"],
+                "amenities": ["pool", "gym", "wifi", "kitchen", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:47:00Z"
+            },
+            {
+              "listingId": "airbnb-10000009",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000009",
+              "title": "Central 2 | bright 1BR near Glebe & DT",
+              "coords": { "lat": 45.4099, "lon": -75.6958 },
+              "addressHint": "354 Gladstone Ave, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 2,
+              "priceNightlyCAD": 158,
+              "reviewCount": 39,
+              "rating": 4.68,
+              "host": { "hostId": "h_d2", "listingsNearby": 2 },
+              "signals": {
+                "mentionsBuildingName": true,
+                "buildingNameMatch": "Central 2",
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 12,
+                "textSnippets": ["theatre room", "gym", "concierge"],
+                "amenities": ["gym", "wifi", "kitchen", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:48:00Z"
+            },
+            {
+              "listingId": "airbnb-10000010",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000010",
+              "title": "ByWard executive condo | parking + gym",
+              "coords": { "lat": 45.4284, "lon": -75.6895 },
+              "addressHint": "200 Besserer St vicinity, Ottawa, ON",
+              "roomType": "Entire condo",
+              "entirePlace": true,
+              "minNights": 1,
+              "priceNightlyCAD": 176,
+              "reviewCount": 58,
+              "rating": 4.84,
+              "host": { "hostId": "h_e1", "listingsNearby": 5 },
+              "signals": {
+                "mentionsBuildingName": false,
+                "buildingNameMatch": null,
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 20,
+                "textSnippets": ["ByWard", "concierge", "indoor pool"],
+                "amenities": ["pool", "gym", "wifi", "kitchen", "parking"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:49:00Z"
+            },
+            {
+              "listingId": "airbnb-10000011",
+              "platform": "airbnb",
+              "url": "https://www.airbnb.ca/rooms/10000011",
+              "title": "Parliament-view studio | Lyon & Slater",
+              "coords": { "lat": 45.4201, "lon": -75.7034 },
+              "addressHint": "Lyon/Slater area, Ottawa, ON",
+              "roomType": "Entire apartment",
+              "entirePlace": true,
+              "minNights": 1,
+              "priceNightlyCAD": 149,
+              "reviewCount": 22,
+              "rating": 4.71,
+              "host": { "hostId": "h_e2", "listingsNearby": 3 },
+              "signals": {
+                "mentionsBuildingName": false,
+                "buildingNameMatch": null,
+                "shortStayLanguage": true,
+                "calendarShortStays90d": 11,
+                "textSnippets": ["check-in/out", "downtown core", "gym access"],
+                "amenities": ["wifi", "kitchen", "gym", "elevator"]
+              },
+              "compliance": {
+                "registrationDisplayed": false,
+                "registrationNumber": null
+              },
+              "lastSeenTs": "2025-09-06T15:50:00Z"
             }
           ]
         }
-        
-        BEHAVIOR ON EMPTY RESULTS
-        - If no candidates are found within the timebox, return the same JSON
-          with "listings": [] and include the attempted "queries" and "sources"
-          in "search".
-        
-        QUALITY/COMPLIANCE REMINDERS
-        - Cite only public facts visible on the listing pages.
-        - Do not include personal contact info, unit numbers, or any non‑public
-          data.
-        - Keep outputs deterministic and machine‑parsable; do not add prose
-          outside the JSON object.
-        
-        END OF SPEC
       
       tools: 
         - group_name: artifact_management
