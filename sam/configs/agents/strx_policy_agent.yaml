@@ -1,0 +1,68 @@
+# Solace Agent Mesh Agent Configuration
+
+log:
+  stdout_log_level: INFO
+  log_file_level: DEBUG
+  log_file: a2a_agent.log
+
+!include ../shared_config.yaml
+
+apps:
+  - name: "STRX_PolicyAgent__app"
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: "${NAMESPACE}"
+      supports_streaming: true
+      agent_name: "Policy_Agent"
+      display_name: "Policy Agent"
+      model: *general_model 
+
+      instruction: |
+        Role: Attach city/building policy and next steps.
+        Flow:
+        - list_artifacts → read context and evidence.
+        - Use Brightdata MCP to fetch bylaw summary.
+        - add_artifact name=policy-<buildingId>.json including fields: buildingId and a policy section with citySummary, list of citations, optional buildingRules, and recommendedActions list.
+        Fallback (Ottawa): citySummary set to "Principal residence only; registration must be displayed on listings."; citations include "By‑law 2021‑104"; recommendedActions include "Verify unit/registration", "Notify host/resident", "Escalate to By‑law if unregistered".
+      
+      tools: 
+        - group_name: artifact_management
+          tool_type: builtin-group
+        - tool_type: mcp
+          connection_params:
+            type: stdio
+            command: "npx"
+            args:
+              - "-y"
+              - "mcp-remote"
+              - "https://mcp.brightdata.com/sse?token=${BRIGHTDATA_TOKEN}&pro=1"
+
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+      
+      artifact_handling_mode: "reference"
+      enable_embed_resolution: true
+      enable_artifact_content_instruction: true
+      data_tools_config: *default_data_tools_config
+
+      # Agent Card Definition
+      agent_card:
+        description: |
+          Adds city and building policy context with cited references and recommended next steps.
+        defaultInputModes: [text] 
+        defaultOutputModes: [text, file] 
+        skills: []
+      
+      # Discovery & Communication
+      agent_card_publishing: 
+        interval_seconds: 10
+      agent_discovery: 
+        enabled: true
+      inter_agent_communication:
+        allow_list: ["*"] 
+        deny_list: [] 
+        request_timeout_seconds: 600

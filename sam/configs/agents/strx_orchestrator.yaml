@@ -1,0 +1,93 @@
+# Solace Agent Mesh Orchestrator Agent Configurations
+
+log:
+  stdout_log_level: INFO
+  log_file_level: INFO
+  log_file: orchestrator-agent.log
+
+# Shared SAM config
+!include ../shared_config.yaml
+
+apps:
+  - name: orchestrator-agent_app
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: ${NAMESPACE} 
+      supports_streaming: true
+      agent_name: "STRX_Orchestrator"
+      display_name: "STRX Orchestrator"
+      model: *planning_model 
+
+      instruction: |
+        STRX Orchestrator — System Prompt
+        Role: Coordinate agents to produce demo‑ready artifacts for STR compliance.
+        Do:
+        - Always use artifact tools to read and write files.
+        - If prerequisites are missing, create them with sensible fallbacks (Ottawa, 8–10 luxury condos).
+        - Prefer small, deterministic batches (max 10 buildings, 20 listings).
+
+        Artifact naming (standardized)
+        - context.json                        — fields: city; optional runId; optional selectedBuildingIds
+        - buildings.json                      — fields: city; buildings list of Building
+        - listings-<city>.json                 — fields: city; results list of Listing
+        - matches-<buildingId>.json            — fields: buildingId; matched list of MatchedListing
+        - scores-<buildingId>.json             — fields: buildingId; scored list of ScoredListing
+        - evidence-<buildingId>.json           — fields: buildingId; evidence list of EvidenceItem
+        - policy-<buildingId>.json             — fields: buildingId; policy with citySummary, citations list, optional buildingRules, recommendedActions list
+        - report-<buildingId>.html             — one‑page brief (HTML)
+        - report-<buildingId>.pdf              — optional PDF
+        - contacts-<buildingId>.json           — fields: buildingId; contacts list of Contact
+        - outbound-<buildingId>.json           — fields: buildingId; sends list of SendResult
+        - viability-<buildingId>.json          — fields: buildingId; viabilityScore; tier; reasons list
+
+        Expected JSON shapes (summaries)
+        - Building: fields: buildingId; name; address; coords with lat and lon; optional polygonHint; optional mgmtCompany
+        - Listing: fields: listingId; platform; url; title; coords with lat and lon; optional addressHint; roomType; entirePlace; optional minNights; optional priceNightlyCAD; optional reviewCount; optional rating; optional host; optional signals; optional compliance; lastSeenTs
+        - MatchedListing: fields: listingId; matchScore; isMatch; reasons list
+        - ScoredListing: fields: listingId; score; confidenceTier; reasons list
+        - EvidenceItem: fields: listingId; evidenceSnippets list; exampleLinks list; needsHumanReview; optional notes
+        - Contact: fields: optional name; role; email; optional sourceUrl; quality
+        - SendResult: fields: contact email; subject; sent; optional messageId; optional trackingPixelUrl; optional error
+
+        Defaults and fallbacks
+        - If context.json is missing, create a context with city set to Ottawa.
+        - If buildings.json is missing, create the Ottawa demo set (8–10 luxury condos).
+        - If listings-ottawa.json is missing, create seeded Ottawa fixtures.
+        - If any step fails, still persist partial outputs and proceed.
+
+        Return
+        - After a run, signal for return: reports (HTML/PDF), scores, evidence, policy, outbound logs.
+      inject_system_purpose: true
+      inject_response_format: true
+      inject_user_profile: true
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+      artifact_handling_mode: "reference" 
+      enable_embed_resolution: true 
+      enable_artifact_content_instruction: true 
+      data_tools_config: *default_data_tools_config
+      tools: 
+        - group_name: artifact_management
+          tool_type: builtin-group
+        - tool_type: builtin-group
+          group_name: "data_analysis"
+
+      agent_card:
+        description: |
+          Coordinates end-to-end workflows, manages agent handoffs, and standardizes artifact creation and return.
+        defaultInputModes: [text]
+        defaultOutputModes: [text, file]
+        skills: [] 
+
+      agent_card_publishing: 
+        interval_seconds: 10
+      agent_discovery: 
+        enabled: true
+      inter_agent_communication:
+        allow_list: ["*"]
+        
+        request_timeout_seconds: 600

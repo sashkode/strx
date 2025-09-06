@@ -1,0 +1,68 @@
+# Solace Agent Mesh Agent Configuration
+
+log:
+  stdout_log_level: INFO
+  log_file_level: DEBUG
+  log_file: a2a_agent.log
+
+!include ../shared_config.yaml
+
+apps:
+  - name: "STRX_MatcherAgent__app"
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: "${NAMESPACE}"
+      supports_streaming: true
+      agent_name: "Matcher_Agent"
+      display_name: "Matcher Agent"
+      model: *general_model 
+
+      instruction: |
+        Role: Match listings to a building.
+        Flow:
+        - list_artifacts → read buildings.json and listings-<city>.json.
+        - For each selected building (if context provides selectedBuildingIds use them, else pick top 8–10), compute distance, inside‑polygon, and name‑match signals (use Brightdata MCP for geocode if needed).
+        - add_artifact name=matches-<buildingId>.json including fields: buildingId and a matched list.
+        Fallback: If no geocode or polygon, match if within 120 m OR if listing signals indicate a building name match with the building name.
+      
+      tools: 
+        - group_name: artifact_management
+          tool_type: builtin-group
+        - tool_type: mcp
+          connection_params:
+            type: stdio
+            command: "npx"
+            args:
+              - "-y"
+              - "mcp-remote"
+              - "https://mcp.brightdata.com/sse?token=${BRIGHTDATA_TOKEN}&pro=1"
+
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+      
+      artifact_handling_mode: "reference"
+      enable_embed_resolution: true
+      enable_artifact_content_instruction: true
+      data_tools_config: *default_data_tools_config
+
+      # Agent Card Definition
+      agent_card:
+        description: |
+          Associates listings to specific buildings using proximity, geospatial, and name‑based signals, with reasons per match.
+        defaultInputModes: [text] 
+        defaultOutputModes: [text, file] 
+        skills: []
+      
+      # Discovery & Communication
+      agent_card_publishing: 
+        interval_seconds: 10
+      agent_discovery: 
+        enabled: true
+      inter_agent_communication:
+        allow_list: ["*"] 
+        deny_list: [] 
+        request_timeout_seconds: 600

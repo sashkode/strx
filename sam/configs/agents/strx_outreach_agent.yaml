@@ -1,0 +1,60 @@
+# Solace Agent Mesh Agent Configuration
+
+log:
+  stdout_log_level: INFO
+  log_file_level: DEBUG
+  log_file: a2a_agent.log
+
+!include ../shared_config.yaml
+
+apps:
+  - name: "STRX_OutreachAgent__app"
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: "${NAMESPACE}"
+      supports_streaming: true
+      agent_name: "Outreach_Agent"
+      display_name: "Outreach Agent"
+      model: *general_model 
+
+      instruction: |
+        Role: Send brief to contacts and log results.
+        Flow:
+        - list_artifacts → read report and contacts.
+        - Compose short, compliant email; add a tracking pixel when possible.
+        - add_artifact name=outbound-<buildingId>.json including fields: buildingId and a sends list.
+        Fallback: Simulate sends with sent set to true and messageId like sim‑UUID.
+      
+      tools: 
+        - group_name: artifact_management
+          tool_type: builtin-group
+
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+      
+      artifact_handling_mode: "reference"
+      enable_embed_resolution: true
+      enable_artifact_content_instruction: true
+      data_tools_config: *default_data_tools_config
+
+      # Agent Card Definition
+      agent_card:
+        description: |
+          Sends personalized, compliant emails with brief links and tracks send/open/reply outcomes.
+        defaultInputModes: [text] 
+        defaultOutputModes: [text, file] 
+        skills: []
+      
+      # Discovery & Communication
+      agent_card_publishing: 
+        interval_seconds: 10
+      agent_discovery: 
+        enabled: true
+      inter_agent_communication:
+        allow_list: ["*"] 
+        deny_list: [] 
+        request_timeout_seconds: 600

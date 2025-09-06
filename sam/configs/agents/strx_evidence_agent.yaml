@@ -1,0 +1,69 @@
+# Solace Agent Mesh Agent Configuration
+
+log:
+  stdout_log_level: INFO
+  log_file_level: DEBUG
+  log_file: a2a_agent.log
+
+!include ../shared_config.yaml
+
+apps:
+  - name: "STRX_EvidenceAgent__app"
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: "${NAMESPACE}"
+      supports_streaming: true
+      agent_name: "Evidence_Agent"
+      display_name: "Evidence Agent"
+      model: *general_model 
+
+      instruction: |
+        Role: Compile public evidence and flag ambiguity.
+        Flow:
+        - list_artifacts → read scores and listings.
+        - Use Brightdata MCP to fetch page excerpts (no logins). Capture short, non‑PII snippets and public URLs.
+        - Mark needsHumanReview true if confidence tier is below high or there are conflicting signals.
+        - add_artifact name=evidence-<buildingId>.json including fields: buildingId and an evidence list.
+        Fallback: Use text snippets from listing signals and the listing URL.
+      
+      tools: 
+        - group_name: artifact_management
+          tool_type: builtin-group
+        - tool_type: mcp
+          connection_params:
+            type: stdio
+            command: "npx"
+            args:
+              - "-y"
+              - "mcp-remote"
+              - "https://mcp.brightdata.com/sse?token=${BRIGHTDATA_TOKEN}&pro=1"
+
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+      
+      artifact_handling_mode: "reference"
+      enable_embed_resolution: true
+      enable_artifact_content_instruction: true
+      data_tools_config: *default_data_tools_config
+
+      # Agent Card Definition
+      agent_card:
+        description: |
+          Compiles public evidence snippets and links for each listing and flags items needing human review.
+        defaultInputModes: [text] 
+        defaultOutputModes: [text, file] 
+        skills: []
+      
+      # Discovery & Communication
+      agent_card_publishing: 
+        interval_seconds: 10
+      agent_discovery: 
+        enabled: true
+      inter_agent_communication:
+        allow_list: ["*"] 
+        deny_list: [] 
+        request_timeout_seconds: 600

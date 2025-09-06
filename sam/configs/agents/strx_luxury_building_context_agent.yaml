@@ -1,0 +1,67 @@
+# Solace Agent Mesh Agent Configuration
+
+log:
+  stdout_log_level: INFO
+  log_file_level: DEBUG
+  log_file: a2a_agent.log
+
+!include ../shared_config.yaml
+
+apps:
+  - name: "STRX_LuxuryBuildingContextAgent__app"
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: "${NAMESPACE}"
+      supports_streaming: true
+      agent_name: "Luxury_Building_Context_Agent"
+      display_name: "Luxury Building Context Agent"
+      model: *general_model 
+
+      instruction: |
+        Role: Provide building aliases, amenities, and phrases.
+        Flow:
+        - list_artifacts → read buildings.
+        - Use Brightdata MCP per building; else attach a small context set (for example, Claridge: aliases include "Claridge Plaza"; amenities include pool and concierge. Mondrian: rooftop pool. Gotham: boutique lobby).
+        - add_artifact name=buildings.json by augmenting the context field in each building entry, or write building-context-<buildingId>.json if stored separately.
+      
+      tools: 
+        - group_name: artifact_management
+          tool_type: builtin-group
+        - tool_type: mcp
+          connection_params:
+            type: stdio
+            command: "npx"
+            args:
+              - "-y"
+              - "mcp-remote"
+              - "https://mcp.brightdata.com/sse?token=${BRIGHTDATA_TOKEN}&pro=1"
+
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+      
+      artifact_handling_mode: "reference"
+      enable_embed_resolution: true
+      enable_artifact_content_instruction: true
+      data_tools_config: *default_data_tools_config
+
+      # Agent Card Definition
+      agent_card:
+        description: |
+          Enriches buildings with aliases, unique amenities, and phrases to improve matching and scoring accuracy.
+        defaultInputModes: [text] 
+        defaultOutputModes: [text, file] 
+        skills: []
+      
+      # Discovery & Communication
+      agent_card_publishing: 
+        interval_seconds: 10
+      agent_discovery: 
+        enabled: true
+      inter_agent_communication:
+        allow_list: ["*"] 
+        deny_list: [] 
+        request_timeout_seconds: 600
