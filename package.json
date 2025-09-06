@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "sam": "cd ./sam/ && python3 -m venv .venv && source .venv/bin/activate && sam run & pnpm run open:8000",
+    "sam": "pnpm run open:8000 & cd ./sam/ && python3 -m venv .venv && source .venv/bin/activate && sam run",
     "open:8000": "node -e \"const { spawn } = require('child_process'); const url='http://localhost:8000'; if(process.platform==='win32'){ spawn('cmd',['/c','start',url],{stdio:'inherit'}); } else if(process.platform==='darwin'){ spawn('open',[url],{stdio:'inherit'}); } else { spawn('xdg-open',[url],{stdio:'inherit'}); }\"",
     "sam:catalog": "cd ./sam/ && python3 -m venv .venv && source .venv/bin/activate && sam plugin catalog",
     "build": "next build --turbopack",
