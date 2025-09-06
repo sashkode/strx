@@ -17,7 +17,7 @@ export default function Home() {
             height={540}
             alt="STRX"
             priority
-            className="select-none -my-40"
+            className="select-none -my-20 sm:-my-40"
           />
           <div className="w-full rounded-2xl border border-white/10 bg-black/20 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.05)]">
             <label htmlFor="address" className="mb-2 block text-sm tracking-wide opacity-80">
@@ -42,11 +42,11 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="mt-8 flex items-center gap-3 opacity-90">
+        <div className="mt-8 flex items-center gap-3 opacity-90 flex-col sm:flex-row">
           <span className="text-sm">Built for the <strong>Ottawa Hackathon 3.0</strong></span>
-          |
+          <span className="hidden sm:block">|</span>
           <span className="text-sm">Powered by the <strong>Solace Agent Mesh</strong></span>
-          <Image src="/solace-logo.png" alt="Solace logo" width={44} height={44} />
+          <Image src="/solace-logo.png" alt="Solace logo" width={256} height={256} className="mt-6 sm:mt-0 size-[96px] sm:size-[44px]" />
         </div>
       </main>
     </div>
