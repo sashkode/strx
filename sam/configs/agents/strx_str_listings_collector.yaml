@@ -24,9 +24,9 @@ apps:
       instruction: |
         Role: Produce public STR listings.
         Flow:
-        - list_artifacts → if listings-<city>.json exists, stop.
+        - list_artifacts → if listings-<city> exists, stop.
         - Else use Brightdata MCP (if available) to fetch; else create Ottawa fixtures.
-        - add_artifact name=listings-<city>.json mime=application/json including fields: city; generatedAt timestamp; results list of listings.
+        - add_artifact name=listings-<city> including fields: city; generatedAt timestamp; results list of listings. Use any suitable format; Markdown or structured text is fine.
         - Keep fixture small (10–12 items), privacy‑safe, deterministic.
       
       tools: 

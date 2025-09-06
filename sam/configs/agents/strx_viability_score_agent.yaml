@@ -27,7 +27,7 @@ apps:
         - list_artifacts → read scores and contacts.
         - Compute a viabilityScore using these signals: whether any high‑confidence detections exist, the count of suspected cases (capped), whether the building is luxury, and the average contact quality.
         - Tiering: score 70 or more is A; 40–69 is B; otherwise C.
-        - add_artifact name=viability-<buildingId>.json including fields: buildingId, viabilityScore, tier, and a reasons list.
+        - add_artifact name=viability-<buildingId> including fields: buildingId, viabilityScore, tier, and a reasons list; format is flexible.
         Fallback: Assume the luxury flag is true for the Ottawa demo set.
       
       tools: 

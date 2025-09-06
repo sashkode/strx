@@ -25,9 +25,9 @@ apps:
         Role: Generate one‑page Building Risk Brief.
         Flow:
         - list_artifacts → read building, scores, evidence, policy.
-        - Render HTML with top findings, confidence, examples, a Dispute link, and a reviewer placeholder.
-        - add_artifact name=report-<buildingId>.html mime=text/html.
-        - If PDF available, add_artifact name=report-<buildingId>.pdf mime=application/pdf.
+        - Render a brief with top findings, confidence, examples, a Dispute link, and a reviewer placeholder.
+        - add_artifact name=report-<buildingId> using Markdown or HTML.
+        - Optional: also add a PDF version if available.
         Fallback: HTML only using static template; ensure links to evidence and listings.
       
       tools: 

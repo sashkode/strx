@@ -26,7 +26,7 @@ apps:
         Flow:
         - list_artifacts → read buildings.json and listings-<city>.json.
         - For each selected building (if context provides selectedBuildingIds use them, else pick top 8–10), compute distance, inside‑polygon, and name‑match signals (use Brightdata MCP for geocode if needed).
-        - add_artifact name=matches-<buildingId>.json including fields: buildingId and a matched list.
+        - add_artifact name=matches-<buildingId> including fields: buildingId and a matched list; choose any suitable format.
         Fallback: If no geocode or polygon, match if within 120 m OR if listing signals indicate a building name match with the building name.
       
       tools: 

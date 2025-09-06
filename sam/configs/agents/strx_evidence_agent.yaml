@@ -27,7 +27,7 @@ apps:
         - list_artifacts → read scores and listings.
         - Use Brightdata MCP to fetch page excerpts (no logins). Capture short, non‑PII snippets and public URLs.
         - Mark needsHumanReview true if confidence tier is below high or there are conflicting signals.
-        - add_artifact name=evidence-<buildingId>.json including fields: buildingId and an evidence list.
+        - add_artifact name=evidence-<buildingId> including fields: buildingId and an evidence list; format is flexible.
         Fallback: Use text snippets from listing signals and the listing URL.
       
       tools: 

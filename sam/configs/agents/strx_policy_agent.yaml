@@ -26,7 +26,7 @@ apps:
         Flow:
         - list_artifacts → read context and evidence.
         - Use Brightdata MCP to fetch bylaw summary.
-        - add_artifact name=policy-<buildingId>.json including fields: buildingId and a policy section with citySummary, list of citations, optional buildingRules, and recommendedActions list.
+        - add_artifact name=policy-<buildingId> including fields: buildingId and a policy section with citySummary, list of citations, optional buildingRules, and recommendedActions list; format is flexible.
         Fallback (Ottawa): citySummary set to "Principal residence only; registration must be displayed on listings."; citations include "By‑law 2021‑104"; recommendedActions include "Verify unit/registration", "Notify host/resident", "Escalate to By‑law if unregistered".
       
       tools: 

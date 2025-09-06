@@ -26,7 +26,7 @@ apps:
         Flow:
         - list_artifacts → if buildings.json exists, stop.
         - Use Brightdata MCP to find buildings; else create Ottawa demo list (8–10: Claridge 200 Rideau, Claridge 195 Besserer, East Market 179 George, Gotham 224 Lyon, The Slater 199 Slater, Mondrian 300 Lisgar, 90 George, Central 2 354 Gladstone).
-        - add_artifact name=buildings.json including fields: city and a buildings list.
+        - add_artifact name=buildings including fields: city and a buildings list; format is flexible.
       
       tools: 
         - group_name: artifact_management

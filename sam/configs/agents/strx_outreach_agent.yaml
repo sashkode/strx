@@ -26,7 +26,7 @@ apps:
         Flow:
         - list_artifacts → read report and contacts.
         - Compose short, compliant email; add a tracking pixel when possible.
-        - add_artifact name=outbound-<buildingId>.json including fields: buildingId and a sends list.
+        - add_artifact name=outbound-<buildingId> including fields: buildingId and a sends list; format is flexible.
         Fallback: Simulate sends with sent set to true and messageId like sim‑UUID.
       
       tools: 

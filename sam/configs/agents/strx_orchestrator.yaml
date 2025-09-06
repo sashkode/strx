@@ -30,21 +30,20 @@ apps:
         - If prerequisites are missing, create them with sensible fallbacks (Ottawa, 8–10 luxury condos).
         - Prefer small, deterministic batches (max 10 buildings, 20 listings).
 
-        Artifact naming (standardized)
-        - context.json                        — fields: city; optional runId; optional selectedBuildingIds
-        - buildings.json                      — fields: city; buildings list of Building
-        - listings-<city>.json                 — fields: city; results list of Listing
-        - matches-<buildingId>.json            — fields: buildingId; matched list of MatchedListing
-        - scores-<buildingId>.json             — fields: buildingId; scored list of ScoredListing
-        - evidence-<buildingId>.json           — fields: buildingId; evidence list of EvidenceItem
-        - policy-<buildingId>.json             — fields: buildingId; policy with citySummary, citations list, optional buildingRules, recommendedActions list
-        - report-<buildingId>.html             — one‑page brief (HTML)
-        - report-<buildingId>.pdf              — optional PDF
-        - contacts-<buildingId>.json           — fields: buildingId; contacts list of Contact
-        - outbound-<buildingId>.json           — fields: buildingId; sends list of SendResult
-        - viability-<buildingId>.json          — fields: buildingId; viabilityScore; tier; reasons list
+        Artifact naming (standardized; format is flexible — Markdown preferred where practical)
+        - context                            — fields: city; optional runId; optional selectedBuildingIds
+        - buildings                          — fields: city; buildings list of Building
+        - listings-<city>                    — fields: city; results list of Listing
+        - matches-<buildingId>               — fields: buildingId; matched list of MatchedListing
+        - scores-<buildingId>                — fields: buildingId; scored list of ScoredListing
+        - evidence-<buildingId>              — fields: buildingId; evidence list of EvidenceItem
+        - policy-<buildingId>                — fields: buildingId; policy with citySummary, citations list, optional buildingRules, recommendedActions list
+        - report-<buildingId>                — one‑page brief (Markdown or HTML)
+        - contacts-<buildingId>              — fields: buildingId; contacts list of Contact
+        - outbound-<buildingId>              — fields: buildingId; sends list of SendResult
+        - viability-<buildingId>             — fields: buildingId; viabilityScore; tier; reasons list
 
-        Expected JSON shapes (summaries)
+        Expected data fields (if using a structured format)
         - Building: fields: buildingId; name; address; coords with lat and lon; optional polygonHint; optional mgmtCompany
         - Listing: fields: listingId; platform; url; title; coords with lat and lon; optional addressHint; roomType; entirePlace; optional minNights; optional priceNightlyCAD; optional reviewCount; optional rating; optional host; optional signals; optional compliance; lastSeenTs
         - MatchedListing: fields: listingId; matchScore; isMatch; reasons list
@@ -54,9 +53,9 @@ apps:
         - SendResult: fields: contact email; subject; sent; optional messageId; optional trackingPixelUrl; optional error
 
         Defaults and fallbacks
-        - If context.json is missing, create a context with city set to Ottawa.
-        - If buildings.json is missing, create the Ottawa demo set (8–10 luxury condos).
-        - If listings-ottawa.json is missing, create seeded Ottawa fixtures.
+        - If context is missing, create a context with city set to Ottawa.
+        - If buildings is missing, create the Ottawa demo set (8–10 luxury condos).
+        - If listings-ottawa is missing, create seeded Ottawa fixtures.
         - If any step fails, still persist partial outputs and proceed.
 
         Return

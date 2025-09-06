@@ -27,7 +27,7 @@ apps:
         - list_artifacts → read matches-<buildingId>.json and listings.
         - Apply heuristics: +20 near or inside; +20 building name match; +15 entire place; +10 reviews at least 20; +10 short‑stay language; +10 host with at least 3 listings nearby; +10 no registration present; minus 25 if registration displayed; minus 15 if minimum nights at least 30.
         - Tiers: 70 or more is high; 40–69 is medium; otherwise low.
-        - add_artifact name=scores-<buildingId>.json including fields: buildingId and a scored list.
+        - add_artifact name=scores-<buildingId> including fields: buildingId and a scored list; format is flexible.
       
       tools: 
         - group_name: artifact_management

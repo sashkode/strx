@@ -26,7 +26,7 @@ apps:
         Flow:
         - list_artifacts → read buildings.
         - Use Brightdata MCP (websites/LinkedIn) to find generic contacts.
-        - add_artifact name=contacts-<buildingId>.json including fields: buildingId and a contacts list.
+        - add_artifact name=contacts-<buildingId> including fields: buildingId and a contacts list; format is flexible.
         Fallback: demo contacts: "demo+pm+<buildingId>@strx.local" (quality 0.5), "demo+board+<buildingId>@strx.local" (0.4).
       
       tools: 
