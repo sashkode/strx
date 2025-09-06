@@ -30,7 +30,7 @@ export default function Home() {
             priority
             className="-my-20 select-none sm:-my-40"
           />
-          <div className="w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1)] shadow-lg">
+          <div className="vt-panel w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]">
             <label
               htmlFor="address"
               className="mb-2 block text-sm tracking-wide opacity-80"
@@ -83,8 +83,13 @@ export default function Home() {
         </div>
       </main>
       <style jsx>{`
-        .vt-panel {
-          view-transition-name: processing-panel;
+        .vt-panel { view-transition-name: processing-panel; }
+        /* Match processing page morph timing so the transition actually plays */
+        :global(:root::view-transition-old(processing-panel)),
+        :global(:root::view-transition-new(processing-panel)) {
+          animation-duration: 820ms;
+          animation-timing-function: cubic-bezier(.2,.9,.2,1);
+          transform-origin: top center;
         }
       `}</style>
     </div>

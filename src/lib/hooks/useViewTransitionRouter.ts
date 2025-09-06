@@ -8,9 +8,16 @@ export function useViewTransitionRouter() {
   const [isPending, startTransition] = useTransition();
 
   const push = (to: string) => {
-    startTransition(() => {
-      router.push(to);
-    });
+    const dt = document as unknown as { startViewTransition?: (cb: () => void) => void };
+    if (typeof dt.startViewTransition === "function") {
+      dt.startViewTransition(() => {
+        router.push(to);
+      });
+    } else {
+      startTransition(() => {
+        router.push(to);
+      });
+    }
   };
 
   return { push, isPending };

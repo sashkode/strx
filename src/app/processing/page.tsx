@@ -115,7 +115,7 @@ export default function ProcessingPage() {
   return (
     <div className="min-h-dvh bg-[--background] text-[--foreground]">
       <main className="mx-auto flex min-h-dvh max-w-3xl flex-col items-center justify-center p-6">
-        <div className="vt-panel w-full rounded-2xl border border-white/10 bg-black/20 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.05)]">
+  <div className="vt-panel w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-lg font-bold opacity-90">Processing building risk</h1>
             {allDone ? (
@@ -137,11 +137,7 @@ export default function ProcessingPage() {
               const isActive = i === current && !completed[i];
               const isDone = completed[i];
               return (
-                <li
-                  key={s.id}
-                  className="step-item rounded-xl border border-white/10 bg-white/5 p-4"
-                  style={{ viewTransitionName: `step-${s.id}` }}
-                >
+                <li key={s.id} className="step-item rounded-xl border border-white/20 bg-black/30 p-4">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 text-white/80">
                       {isDone ? (
