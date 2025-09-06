@@ -22,7 +22,7 @@ apps:
       model: *general_model 
 
       instruction: |
-        Role: Send brief to contacts and log results.
+        Role: Simulate sending a brief to contacts and store the html templates as artifacts.
         Flow:
         - list_artifacts → read report and contacts.
         - Compose short, compliant email; add a tracking pixel when possible.
@@ -37,7 +37,7 @@ apps:
       artifact_service: *default_artifact_service
       
       artifact_handling_mode: "reference"
-      enable_embed_resolution: true
+      enable_embed_resolution: false
       enable_artifact_content_instruction: true
       data_tools_config: *default_data_tools_config
 

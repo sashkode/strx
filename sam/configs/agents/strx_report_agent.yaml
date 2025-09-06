@@ -38,7 +38,7 @@ apps:
       artifact_service: *default_artifact_service
       
       artifact_handling_mode: "reference"
-      enable_embed_resolution: true
+      enable_embed_resolution: false
       enable_artifact_content_instruction: true
       data_tools_config: *default_data_tools_config
 
