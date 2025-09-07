@@ -1,20 +1,29 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, useLayoutEffect, type ReactNode, unstable_ViewTransition as ViewTransition } from "react";
-import { Button } from "~/components/ui/button";
 import Link from "next/link";
-import { useViewTransitionRouter } from "~/lib/hooks/useViewTransitionRouter";
+import { useSearchParams } from "next/navigation";
 import {
-  LuCog,
-  LuSearch,
-  LuGitMerge,
-  LuGauge,
-  LuFileText,
-  LuScrollText,
-  LuSparkles,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  unstable_ViewTransition as ViewTransition,
+  type ReactNode,
+} from "react";
+import {
   LuCheck,
+  LuCog,
+  LuFileText,
+  LuGauge,
+  LuGitMerge,
   LuLoader,
+  LuScrollText,
+  LuSearch,
+  LuSparkles,
 } from "react-icons/lu";
 import Footer from "~/components/Footer";
+import { Button } from "~/components/ui/button";
+import { useViewTransitionRouter } from "~/lib/hooks/useViewTransitionRouter";
 
 type Step = {
   id: number;
@@ -56,7 +65,8 @@ export default function ProcessingPage() {
       {
         id: 3,
         title: "Match to building",
-        loading: "Matching via polygon containment, proximity, and alias signals…",
+        loading:
+          "Matching via polygon containment, proximity, and alias signals…",
         done: "7 listings matched to Claridge Plaza",
         icon: <LuGitMerge className="h-5 w-5" aria-hidden="true" />,
       },
@@ -72,7 +82,7 @@ export default function ProcessingPage() {
         id: 5,
         title: "Compile evidence",
         loading: "Extracting text snippets, amenity signatures, and map links…",
-        done: "Evidence compiled for 5 suspected listings; signals consistent",
+        done: "Evidence compiled for 2 suspected listings; signals consistent",
         icon: <LuFileText className="h-5 w-5" aria-hidden="true" />,
       },
       {
@@ -139,11 +149,15 @@ export default function ProcessingPage() {
     // force reflow
     el.getBoundingClientRect();
     requestAnimationFrame(() => setPanelHeight(`${next}px`));
-    const onTransitionEnd = (e: TransitionEvent) => { if (e.propertyName === "height") setPanelHeight(undefined); };
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.propertyName === "height") setPanelHeight(undefined);
+    };
     el.addEventListener("transitionend", onTransitionEnd);
     prevHeightRef.current = next;
     return () => el.removeEventListener("transitionend", onTransitionEnd);
   }, [current, allDone]);
+
+  const taskId = useSearchParams().get("taskId");
 
   return (
     <div className="relative min-h-dvh bg-[--background] text-[--foreground]">
@@ -154,15 +168,17 @@ export default function ProcessingPage() {
           style={{
             viewTransitionName: "processing-panel",
             height: panelHeight,
-            transition: "height 420ms linear"
+            transition: "height 420ms linear",
           }}
           className="w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm p-6 pb-14 shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
         >
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-lg font-bold opacity-90">Processing building risk</h1>
+            <h1 className="text-lg font-bold opacity-90">
+              Processing building risk
+            </h1>
             {allDone ? (
               <Button asChild>
-                <Link href="/" prefetch>
+                <Link href={`/report?taskId=${taskId}`} prefetch>
                   View results
                 </Link>
               </Button>
@@ -179,18 +195,26 @@ export default function ProcessingPage() {
               const isActive = i === current && !completed[i];
               const isDone = completed[i];
               return (
-                <li key={s.id} className="step-item rounded-xl border border-white/20 bg-black/30 p-4">
+                <li
+                  key={s.id}
+                  className="step-item rounded-xl border border-white/20 bg-black/30 p-4"
+                >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 text-white/80">
                       {isDone ? (
-                        <LuCheck className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+                        <LuCheck
+                          className="h-5 w-5 text-emerald-400"
+                          aria-hidden="true"
+                        />
                       ) : (
                         s.icon
                       )}
                     </div>
                     <div className="flex-1">
                       <div className="mb-1 flex items-center justify-between">
-                        <span className="text-sm font-bold opacity-90">{s.title}</span>
+                        <span className="text-sm font-bold opacity-90">
+                          {s.title}
+                        </span>
                         <span className="text-xs opacity-60">
                           Step {i + 1} of {steps.length}
                         </span>
@@ -201,11 +225,13 @@ export default function ProcessingPage() {
                           (isActive
                             ? "relative overflow-hidden text-white/90"
                             : isDone
-                              ? "text-white/80"
-                              : "text-white/70")
+                            ? "text-white/80"
+                            : "text-white/70")
                         }
                       >
-                        <span className={isActive ? "shine" : undefined}>{isDone ? s.done : s.loading}</span>
+                        <span className={isActive ? "shine" : undefined}>
+                          {isDone ? s.done : s.loading}
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -214,7 +240,9 @@ export default function ProcessingPage() {
             })}
           </ul>
           {!allDone ? (
-            <p className="absolute bottom-4 left-0 w-full mt-6 text-center text-xs opacity-60">This may take a minute. You can keep this tab open.</p>
+            <p className="absolute bottom-4 left-0 w-full mt-6 text-center text-xs opacity-60">
+              This may take a minute. You can keep this tab open.
+            </p>
           ) : (
             <div className="mt-6 flex items-center justify-center gap-3">
               <Button onClick={() => push("/")}>Back home</Button>
@@ -232,12 +260,27 @@ export default function ProcessingPage() {
       {/* Local CSS: view transitions, step grow + delayed fade, and text shine */}
       <style jsx>{`
         /* Step appears: grow first, then fade-in + lift content */
-        .step-item { overflow: hidden; opacity: 1; transform: translateY(0); transition: opacity 380ms ease 260ms, transform 420ms ease 260ms; }
-        @starting-style { .step-item { opacity: 0; transform: translateY(20px); } }
+        .step-item {
+          overflow: hidden;
+          opacity: 1;
+          transform: translateY(0);
+          transition: opacity 380ms ease 260ms, transform 420ms ease 260ms;
+        }
+        @starting-style {
+          .step-item {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+        }
 
         /* Reliable text shine using animated background-position */
         .shine {
-          background-image: linear-gradient(90deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.45) 100%);
+          background-image: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.45) 0%,
+            rgba(255, 255, 255, 0.95) 50%,
+            rgba(255, 255, 255, 0.45) 100%
+          );
           background-size: 200% 100%;
           background-position: 200% 0;
           -webkit-background-clip: text;
@@ -245,7 +288,11 @@ export default function ProcessingPage() {
           color: transparent;
           animation: shine-sweep 2s linear infinite;
         }
-        @keyframes shine-sweep { to { background-position: -200% 0; } }
+        @keyframes shine-sweep {
+          to {
+            background-position: -200% 0;
+          }
+        }
       `}</style>
     </div>
   );

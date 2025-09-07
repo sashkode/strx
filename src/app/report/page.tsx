@@ -1,10 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import { LuCircleAlert, LuCircleCheck, LuFileWarning } from "react-icons/lu";
 
 export default function Report() {
   return (
-    <div className="min-h-dvh bg-[--background] text-[--foreground]">
+    <div className="min-h-dvh bg-[--background] text-[--foreground] pt-14">
+      <Image
+        src="/logo.png"
+        width={540}
+        height={540}
+        alt="STRX"
+        priority
+        className="-my-20 select-none sm:-my-40 mx-auto scale-50"
+      />
+
       <main className="mx-auto flex min-h-dvh max-w-5xl flex-col items-center justify-center p-6">
         <div className="vt-panel w-full rounded-2xl border border-white/20 bg-gradient-to-br from-white/10 via-white/8 to-white/5 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.1)]">
           <div className="bg-red-200"></div>
@@ -16,8 +26,12 @@ export default function Report() {
             <div className="flex-1 flex flex-col gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold">STRX Risk Assessment</h1>
-                  <p className="text-white/60">200 Rideau Street</p>
+                  <h1 className="text-2xl font-bold">
+                    Claridge Plaza (200 Rideau St)
+                  </h1>
+                  <p className="text-white/60">
+                    Short-Term Rental Risk Assessment
+                  </p>
                 </div>
 
                 <div className="text-right opacity-90">
