@@ -178,7 +178,11 @@ export default function ProcessingPage() {
             </h1>
             {allDone ? (
               <Button asChild>
-                <Link href={`/report?taskId=${taskId}`} prefetch>
+                <Link
+                  href={`/report?taskId=${taskId}`}
+                  target="_blank"
+                  prefetch
+                >
                   View results
                 </Link>
               </Button>
