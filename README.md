@@ -140,5 +140,5 @@ To run this project locally:
 ## 👥 The Team
 
 - **[Alex D'Aoust]** - Product Design & Engineering - [@GitHub](https://github.com/sashkode)
-- **[Félix Poitras]** - Product Design & Engineering - [@GitHub](https://github.com/fpoitras)
+- **[Félix Poitras]** - Product Design & Engineering - [@GitHub](https://github.com/FelixPoitras)
 
