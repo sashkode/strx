@@ -77,7 +77,7 @@ export default function Report() {
                 <div className="flex gap-3">
                   <div className="size-16 rounded-lg overflow-hidden flex-shrink-0 bg-[#0e214b]">
                     <img
-                      src="/vrbo.svg"
+                      src="/airbnb.jpg"
                       alt="Listing preview"
                       className="object-cover size-full"
                     />
@@ -104,7 +104,7 @@ export default function Report() {
                 <div className="flex gap-3">
                   <div className="size-16 rounded-lg overflow-hidden flex-shrink-0">
                     <img
-                      src="/airbnb.jpg"
+                      src="/vrbo.svg"
                       alt="Listing preview"
                       className="object-cover size-full scale-200"
                     />
