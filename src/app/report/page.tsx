@@ -79,7 +79,7 @@ export default function Report() {
                     <img
                       src="/airbnb.jpg"
                       alt="Listing preview"
-                      className="object-cover size-full"
+                      className="object-cover size-full scale-200"
                     />
                   </div>
 
@@ -106,7 +106,7 @@ export default function Report() {
                     <img
                       src="/vrbo.svg"
                       alt="Listing preview"
-                      className="object-cover size-full scale-200"
+                      className="object-cover size-full"
                     />
                   </div>
 
